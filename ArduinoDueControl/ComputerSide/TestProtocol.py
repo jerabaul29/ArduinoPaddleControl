@@ -4,7 +4,7 @@
 import serial
 import CommunicationSerialBinary
 import numpy as np
-from tictoc import *
+import tictoc
 import glob
 import time
 
@@ -16,29 +16,9 @@ communication_serial = CommunicationSerialBinary.Paddle_Actuator()
 # find available port and connect to it
 usb_port = communication_serial.connect_to_board()
 
-# simple test by hand
-#signal = np.array([1,2,3,4,5,6,7,4094,4095])
-signal = np.zeros((5000,))
-
 ################################################################################
 # for test only set the buffer by hand
-signal = np.zeros((64,))
-communication_serial.set_buffer(signal)
-communication_serial.generate_buffer_as_bytes()
-communication_serial.transmit_buffer_bytes_through_serial()
-
-# log during one second (the tic is used to determine one second)
-tic()
-list_char = []
-while toc(print_message=False) < 1:
-    if usb_port.inWaiting > 0:
-        char = usb_port.read()
-        list_char.append(char)
-
-string_log = ''.join(list_char)
-print "From Arduino: "
-print str(string_log)
-
+signal = np.zeros((20000,))
 
 ################################################################################
 # using the library to set a signal

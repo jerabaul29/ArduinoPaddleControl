@@ -50,8 +50,12 @@ bool performed_update_output = false;
 PID myPID(&Input, &Output, &Setpoint, PID_P, PID_I, PID_D, PID_S, NMICROS_PID_LOOP);
 
 // half size of the input buffer -----------------------------------------------
-// should agree with the Python code; half size of the input buffer should be the size of the python transmitted buffer
-#define HALF_INPUT_BUFFER 200
+// should agree with the Python code; half size of the input buffer should be the size (in bytes!!) of the python transmitted buffer
+// i.e. if use two bytes per set point, double NUMBER_OF_POINTS_PER_BUFFER in the Python code
+// it should also be no more than half the total size of the Arduino Due custon RX buffer as defined in the modified core.
+// in practise, take a little bit less to avoid overflow problems
+#define HALF_INPUT_BUFFER 4096
+//#define HALF_INPUT_BUFFER 2048
 
 // variable for timing ---------------------------------------------------------
 // timing of the set point update

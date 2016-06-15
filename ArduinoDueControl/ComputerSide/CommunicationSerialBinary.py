@@ -100,8 +100,10 @@ SHIFT_POWER_OF_10_PID_CSTTS = 128
 FREQUENCY_CONTROL = 200
 
 # number of points to send to the board upon buffer request
-# ie size of a buffer to send
-NUMBER_OF_POINTS_PER_BUFFER = 512
+# NOTE: CAUTION!! the size of the real buffer to send is bigger: if use two bytes, it will
+# be twice as many bytes as this number of points!
+# the NUMBER_OF_POINTS_PER_BUFFER should be typically half the HALF_INPUT_BUFFER in the Arduino program
+NUMBER_OF_POINTS_PER_BUFFER = 1024
 ################################################################################
 
 ################################################################################
@@ -230,6 +232,8 @@ class Paddle_Actuator(object):
         print "Using port: "+str(port[0])
         usb_port = serial.Serial(port[0],baudrate=115200,timeout=0.5)
         usb_port.flushInput()
+
+        print "Port imported"
 
         # set port in library
         self.set_serial_port(usb_port)
@@ -624,6 +628,7 @@ class Paddle_Actuator(object):
             # check if need to pre generate next buffer and not end of signal yet
             if not self.next_buffer_is_ready:
                 if not self.end_signal_buffer:
+                    print "A: make next buffer ready"
                     self.make_next_buffer_ready()
 
             # if a char available on serial, process information from arduino
@@ -664,6 +669,8 @@ class Paddle_Actuator(object):
 
                 # request buffer: serve buffer if not arrived at the end
                 elif char_read == 'T' and self.next_buffer_is_ready:
+
+                    print "A: Transmit pre computed buffer"
 
                     # transmit pre computed buffer
                     self.transmit_buffer_bytes_through_serial()
