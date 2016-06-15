@@ -17,8 +17,8 @@ communication_serial = CommunicationSerialBinary.Paddle_Actuator()
 usb_port = communication_serial.connect_to_board()
 
 # simple test by hand
-signal = np.array([1,2,3,4,5,6,7,4094,4095])
-
+#signal = np.array([1,2,3,4,5,6,7,4094,4095])
+signal = np.zeros((5000,))
 
 ################################################################################
 # for test only set the buffer by hand
@@ -57,10 +57,13 @@ communication_serial.check_ready()
 # PERFORM SETUP AND START
 communication_serial.perform_setup_and_start()
 
+# perform actuation
+communication_serial.perform_actuation()
 
 
-
-
+communication_serial.dict_feedback["init_trash"]
+communication_serial.dict_feedback["error_msg"]
+communication_serial.dict_feedback["post_actuation"]
 
 
 

@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include <PID_vmicroseconds.h>
+#include "PID_vmicroseconds.h"
 
 // Protocol properties ---------------------------------------------------------
 // the most significant bit of a byte
@@ -13,14 +13,18 @@
 //#define NBR_BITS_DATA_INT 10
 
 // debug mode ------------------------------------------------------------------
-#define DEBUG_MODE true
+#define DEBUG_MODE false
 
 // Frequency parameters --------------------------------------------------------
 // number of microseconds to wait between readings of set values
 // this value must agree with the Python program /input signal ('scan rate')
-#define NMICROS_READ_SETPOINT 200UL
+// 500 Hz is each 2 milli second is each 2000 micro second
+#define NMICROS_READ_SETPOINT 2000UL
 // number of microseconds to wait before performing again the PID control
 #define NMICROS_PID_LOOP 50UL
+// number of micro seconds to wait before allowed to ask for a new buffer
+// to avoid asking several time in a row for the same buffer
+# define NMICROS_REQUEST_BUFFER 1000UL
 
 //Defines so the device can do a self reset ------------------------------------
 // NOTE: this part is Arduino Due specific
@@ -46,12 +50,14 @@ bool performed_update_output = false;
 PID myPID(&Input, &Output, &Setpoint, PID_P, PID_I, PID_D, PID_S, NMICROS_PID_LOOP);
 
 // half size of the input buffer -----------------------------------------------
-// should agree with the Python code
+// should agree with the Python code; half size of the input buffer should be the size of the python transmitted buffer
 #define HALF_INPUT_BUFFER 200
 
 // variable for timing ---------------------------------------------------------
 // timing of the set point update
 unsigned long last_update_set_point;
+// timiing for buffer request
+unsigned long last_request_buffer;
 
 // properties of the PWM -------------------------------------------------------
 // max value output (8 bits is default is 255)
@@ -70,14 +76,19 @@ int pos_2_before = DEFAULT_VALUE;
 int pos_3_before = DEFAULT_VALUE;
 int current_reading;
 
+// additional statistics -------------------------------------------------------
+unsigned long number_of_update_set_point = 0;
+unsigned long number_of_PID_loop = 0;
+
+
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // NOTES:
 
-// check how fast ADC
-// check how fast PWM (frequency and multiplicator)
-// check resolution PWM
+// how fast ADC: can be checked with TestADC_Due
+// how fast PWM (frequency and multiplicator): set in the modified Arduino Due core
+// resolution PWM: set in the modified Arduino Due core
 
 // TO DO:
 
@@ -94,9 +105,9 @@ void setup() {
      // open serial port on native USB; baud rate must be the same as in Python
      Serial.begin(115200);
 
-     #if DEBUG_MODE
-        Serial.println(F("booted"));
-        #endif
+    #if DEBUG_MODE
+      Serial.println(F("M booted"));
+    #endif
 
     // TAKE CARE OF ANALOG_READ RESOLUTION -------------------------------------
     // change the resolution to 12 bits and read A0 (12 bits ADC on Arduino Due)
@@ -108,7 +119,6 @@ void setup() {
     // no point increasing the PWM resolution, 8 bits is enough
     // increase the PWM frequency for avoiding the annoying PWM noise and allowing
     // faster control. This is done directly in variants.h
-
 
     // wait for ready signal ---------------------------------------------------
     wait_for_character('R');
@@ -125,8 +135,9 @@ void setup() {
     wait_for_character('X');
 
     // wait a few instants to receive the two first buffers and start ----------
-    delay(500);
+    delay(1000);
     last_update_set_point = micros();
+    last_request_buffer = micros();
 
     // start PID
     myPID.SetMode(AUTOMATIC);
@@ -176,7 +187,7 @@ void wait_for_character(char char_to_get){
             // if not the right char, reboot
             else{
                 Serial.println(char_crrt);
-                Serial.print(F("E that was not right, expected: "));
+                Serial.print("E that was not right, expected: ");
                 Serial.println(char_to_get);
                 delay(50);
                 REQUEST_EXTERNAL_RESET
@@ -229,9 +240,9 @@ float get_one_PID_parameter(char param_Key){
     // compute the PID parameter
     float PID_parameter = float(mantissa)*pow(10.0,float(exponent)-128.0);
 
-    #if DEBUG_MODE
-        Serial.println(PID_parameter);
-    #endif
+    //#if DEBUG_MODE
+    Serial.println(PID_parameter);
+    //#endif
 
     return(PID_parameter);
 }
@@ -249,9 +260,9 @@ int get_actuation_sign(){
     int sign_actuation;
     sign_actuation = int(sign_byte);
 
-    #if DEBUG_MODE
-        Serial.println(sign_actuation);
-    #endif
+    //#if DEBUG_MODE
+    Serial.println(sign_actuation);
+    //#endif
 
     return(sign_actuation);
 }
@@ -279,7 +290,9 @@ void set_point_control(){
 
         // if buffer empty, it is the end of actuation, reboot
         if (number_bits_available == 0){
-            Serial.printf('Z');
+            Serial.println('Z');
+            Serial.print(F("Number of update of set point: "));
+            Serial.println(number_of_update_set_point);
             delay(100);
             REQUEST_EXTERNAL_RESET
         }
@@ -290,10 +303,13 @@ void set_point_control(){
         Setpoint = assemble_bytes_protocol();
         last_update_set_point += NMICROS_READ_SETPOINT;
 
-        // if less than half a buffer left, ask Python for a new buffer
-        if (number_bits_available < HALF_INPUT_BUFFER){
+        // if less than half a buffer left, and longer than a typical wait time, ask Python for a new buffer
+        if ((number_bits_available < HALF_INPUT_BUFFER)&&(micros() - last_request_buffer > NMICROS_REQUEST_BUFFER)){
             Serial.print('T');
+            last_request_buffer = micros();
         }
+
+        number_of_update_set_point ++;
     }
 }
 
@@ -326,6 +342,9 @@ int assemble_bytes_protocol(){
     if (bitRead(byte1,NBIT)==0){
       Serial.println(F("E error: not start of a packet!"));
 
+      //Serial.print(F("in ascii, this was: "));
+      //Serial.println(byte1);
+
       // try to read next
       Serial.println(F("try to read next"));
 
@@ -339,8 +358,11 @@ int assemble_bytes_protocol(){
     if (bitRead(byte2,NBIT)==1){
       Serial.println(F("E error: not continuation of a packet!"));
 
+      //Serial.print(F("in ascii, this was: "));
+      //Serial.println(byte2);
+
       // try to read next
-      Serial.println(F("E try to read next"));
+      Serial.println(F("try to read next"));
 
       int result_next = assemble_bytes_protocol();
       return(result_next);
@@ -359,7 +381,7 @@ int assemble_bytes_protocol(){
 
     // for debugging
     #if DEBUG_MODE
-      Serial.print("protocol deciphered: ");
+      Serial.print(F("M protocol deciphered: "));
       Serial.println(value_assembled);
     #endif
 

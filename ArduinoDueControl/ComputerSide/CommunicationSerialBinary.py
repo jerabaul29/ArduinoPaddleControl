@@ -101,7 +101,7 @@ FREQUENCY_CONTROL = 200
 
 # number of points to send to the board upon buffer request
 # ie size of a buffer to send
-NUMBER_OF_POINTS_PER_BUFFER = 1024
+NUMBER_OF_POINTS_PER_BUFFER = 512
 ################################################################################
 
 ################################################################################
@@ -567,6 +567,9 @@ class Paddle_Actuator(object):
         self.dict_feedback["feedback_control"] = []
         self.dict_feedback["feedback_time_ms"] = []
         self.dict_feedback["error_msg"] = []
+        self.dict_feedback["benign_msg"] = []
+        self.dict_feedback["init_trash"] = []
+        self.dict_feedback["post_actuation"] = []
 
         print 'Send first double buffer and start actuation'
         # intialize the indice for start of next buffer
@@ -579,6 +582,9 @@ class Paddle_Actuator(object):
         # make the second buffer ready and send it
         self.make_next_buffer_ready()
         self.transmit_buffer_bytes_through_serial()
+
+        # reset buffer to avoid trash effect
+        #self.serial_port.flushInput()
 
         # NOW ARDUINO CAN END SETUP AND START LOOP
 
@@ -601,6 +607,18 @@ class Paddle_Actuator(object):
         # flag for logging error message
         error_message = False
 
+        # flag for end of the signal buffer
+        self.end_signal_buffer = False
+
+        # number of error messages
+        self.number_error_messages = 0
+
+        # number of buffers transmitted
+        self.number_buffers_transmitted = 2
+
+        # read init trash
+        current_key = "init_trash"
+
         while not_finished:
 
             # check if need to pre generate next buffer and not end of signal yet
@@ -614,8 +632,14 @@ class Paddle_Actuator(object):
                 # read one char at a time
                 char_read = self.serial_port.read()
 
+                #print "*"+str(char_read)
+
+                # ignore newline
+                if char_read == '\n':
+                    pass
+
                 # feedback set point follows
-                if char_read == 'A':
+                elif char_read == 'A':
                     current_key = "feedback_set_point"
                     self.dict_feedback[current_key].append(',')
                     error_message = False
@@ -644,13 +668,22 @@ class Paddle_Actuator(object):
                     # transmit pre computed buffer
                     self.transmit_buffer_bytes_through_serial()
                     error_message = False
+                    self.number_buffers_transmitted = self.number_buffers_transmitted + 1
 
                 # error message (note: use E in the Arduino program only to say error follows)
                 elif char_read == 'E':
                     current_key = "error_msg"
                     self.dict_feedback[current_key].append(',')
                     error_message = True
+                    self.number_error_messages = self.number_error_messages + 1
                     print "---------------------------- !!RECEIVED ERROR MESSAGE!! ----------------------------"
+
+                # benign message
+                elif char_read == 'M':
+                    current_key = "benign_msg"
+                    self.dict_feedback[current_key].append(',')
+                    error_message = False
+
 
                 # check if the board says actuation is finished
                 elif char_read =='Z':
@@ -664,6 +697,18 @@ class Paddle_Actuator(object):
                         print char_read
 
         print "Finished actuation and feedback logging!"
+        print "Number of error messages received: "+str(self.number_error_messages)
+        print "Number of buffers transmitted: "+str(self.number_buffers_transmitted)
+
+        # log post actuation information ----------------------------------------------------
+        # wait a bit to let time to post actuation information to arrive
+        time.sleep(1)
+
+        while (self.serial_port.in_waiting > 0):
+
+            # log
+            self.dict_feedback["post_actuation"].append(self.serial_port.read())
+
 
     ############################################################################
     # all diagnosis and post processing methods
