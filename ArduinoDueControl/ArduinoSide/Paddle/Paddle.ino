@@ -24,7 +24,7 @@
 #define NMICROS_PID_LOOP 100UL
 // number of micro seconds to wait before allowed to ask for a new buffer
 // to avoid asking several time in a row for the same buffer
-#define NMICROS_REQUEST_BUFFER 1000UL
+#define NMICROS_REQUEST_BUFFER 100000UL
 // how often sends feedback
 #define NMICROS_FEEDBACK 50000UL
 
@@ -91,6 +91,7 @@ int current_reading;
 unsigned long number_of_update_set_point = 0;
 unsigned long number_of_PID_loop = 0;
 unsigned long number_loop_called = 0;
+unsigned long number_of_feedback_send = 0;
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -162,6 +163,9 @@ void setup() {
 
 void loop() {
 
+    // send feedback -----------------------------------------------------------
+    send_feedback();
+
     // check if time to update set point ---------------------------------------
     set_point_control();
 
@@ -175,9 +179,6 @@ void loop() {
     if (performed_update_output){
         write_to_PWM();
     }
-
-    // send feedback -----------------------------------------------------------
-    send_feedback();
 
     number_loop_called ++;
 
@@ -428,6 +429,9 @@ void send_feedback(){
 
   if (micros() - last_time_sent_feedback > NMICROS_FEEDBACK){
 
+    // update timer
+    last_time_sent_feedback = micros();
+
     // send current set point, key A
     Serial.println('A');
     Serial.println(Setpoint);
@@ -444,8 +448,7 @@ void send_feedback(){
     Serial.println('D');
     Serial.println(micros());
 
-    // update timer
-    last_time_sent_feedback = micros();
+    number_of_feedback_send ++;
 
   }
 
@@ -470,5 +473,10 @@ void send_post_actuation_data(){
   // send number of times loop was run
   Serial.println('V');
   Serial.println(number_loop_called);
+
+  // send number of feedback that were sent
+  Serial.println('W');
+  Serial.println(number_of_feedback_send);
+
 
 }

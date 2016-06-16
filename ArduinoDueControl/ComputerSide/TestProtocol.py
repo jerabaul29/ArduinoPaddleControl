@@ -17,8 +17,18 @@ communication_serial = CommunicationSerialBinary.Paddle_Actuator()
 usb_port = communication_serial.connect_to_board()
 
 ################################################################################
-# for test only set the buffer by hand
-signal = np.zeros((4000,))
+# set the actuation signal
+# scan rate in Hz
+scan_rate = 500.
+period = 2.
+amplitude = 250.
+mean_position = 2048.
+time_seconds = 20.
+signal = np.sin(np.linspace(0,time_seconds,time_seconds*scan_rate+1))*amplitude + mean_position
+
+#np.linspace(0,time_seconds,time_seconds*scan_rate+1)
+
+#signal
 
 ################################################################################
 # using the library to set a signal
@@ -48,9 +58,6 @@ communication_serial.dict_feedback["feedback_set_point"]
 
 communication_serial.convert_feedback_data()
 communication_serial.analyze_performed_actuation()
-
-
-
 
 
 

@@ -601,6 +601,7 @@ class Paddle_Actuator(object):
         self.dict_feedback["post_actuation_number_of_updates"] = []
         self.dict_feedback["post_actuation_number_of_loop_calls"] = []
         self.dict_feedback["post_actuation_error_msg"] = []
+        self.dict_feedback["number_of_feedback_send"] = []
 
 
         print 'Send first double buffer and start actuation'
@@ -647,6 +648,9 @@ class Paddle_Actuator(object):
 
         # number of buffers transmitted
         self.number_buffers_transmitted = 2
+
+        # number of feedback received
+        self.number_feedback_ms_received = 0
 
         # read init trash
         current_key = "init_trash"
@@ -698,6 +702,7 @@ class Paddle_Actuator(object):
                     current_key = "feedback_time_ms"
                     self.dict_feedback[current_key].append(',')
                     error_message = False
+                    self.number_feedback_ms_received = self.number_feedback_ms_received + 1
 
                 # request buffer: serve buffer if not arrived at the end
                 elif char_read == 'T' and self.next_buffer_is_ready:
@@ -733,7 +738,8 @@ class Paddle_Actuator(object):
                 else:
                     self.dict_feedback[current_key].append(char_read)
                     if error_message:
-                        print char_read
+                        #print "Error!!"
+                        pass
 
         print "Finished actuation and feedback logging!"
         print "Number of error messages received: "+str(self.number_error_messages)
@@ -741,7 +747,7 @@ class Paddle_Actuator(object):
 
         # log post actuation information ----------------------------------------------------
         # wait a bit to let time to post actuation information to arrive
-        time.sleep(1)
+        time.sleep(0.1)
 
         while (self.serial_port.in_waiting > 0):
 
@@ -772,6 +778,11 @@ class Paddle_Actuator(object):
 
             elif char_read == 'V':
                 current_key = "post_actuation_number_of_loop_calls"
+                self.dict_feedback[current_key].append(',')
+                error_message = False
+
+            elif char_read == 'W':
+                current_key = "number_of_feedback_send"
                 self.dict_feedback[current_key].append(',')
                 error_message = False
 
@@ -807,6 +818,7 @@ class Paddle_Actuator(object):
         self.post_actuation_total_actuation_time = convert_list_feedback(self.dict_feedback["post_actuation_total_actuation_time"])
         self.post_actuation_number_of_updates = convert_list_feedback(self.dict_feedback["post_actuation_number_of_updates"])
         self.post_actuation_number_of_loop_calls = convert_list_feedback(self.dict_feedback["post_actuation_number_of_loop_calls"])
+        self.number_of_feedback_send = convert_list_feedback(self.dict_feedback["number_of_feedback_send"])
 
 
     def analyze_performed_actuation(self):
@@ -821,6 +833,10 @@ class Paddle_Actuator(object):
         print "Total actuation time (milli seconds): "+str(self.post_actuation_total_actuation_time)
         print "Total number of set point updates: "+str(self.post_actuation_number_of_updates)
         print "Total number of loop calls: "+str(self.post_actuation_number_of_loop_calls)
+        print "Total number of ms feedback send by Arduino: "+str(self.number_of_feedback_send)
+        print "Corresponding to a theoretical signal duration (s): "+str(self.number_of_feedback_send/20.)
+        print "Total number of ms feedback received: "+str(self.number_feedback_ms_received)
+        print "Corresponding to a theoretical signal duration (s): "+str(float(self.number_feedback_ms_received)/20.)
 
         print " "
 
@@ -840,4 +856,4 @@ class Paddle_Actuator(object):
         plt.plot(self.feedback_time_ms*ONE_MICRO_SECOND,self.feedback_position,label="position")
         plt.plot(self.feedback_time_ms*ONE_MICRO_SECOND,self.feedback_control,label="control")
 
-        plt.legend()
+        plt.legend(loc=3)
