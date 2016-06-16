@@ -18,28 +18,29 @@ usb_port = communication_serial.connect_to_board()
 
 ################################################################################
 # for test only set the buffer by hand
-signal = np.zeros((20000,))
+signal = np.zeros((4000,))
 
 ################################################################################
 # using the library to set a signal
-# SET THE PID PARAMETERS
-communication_serial.set_PID_parameters(12,345,0.074,1)
+# SET THE PID PARAMETERS: P  |  I  |  D  |  S
+communication_serial.set_PID_parameters(12,34005,0.00074,1)
 
-# SET THE SIGNAL AND PLOT
+# SET THE SIGNAL AND PLOT ------------------------------------------------------
 communication_serial.set_signal(signal)
-#communication_serial.plot_control_signal()
-#time.sleep(0.5)
-communication_serial.check_signal()
+communication_serial.plot_control_signal()
+time.sleep(0.5)
 
-# CHECK THAT EVERYTHING IS READY
+# CHECK THAT EVERYTHING IS READY -----------------------------------------------
 communication_serial.check_ready()
 
-# PERFORM SETUP AND START
+# PERFORM SETUP AND START ACTUATION --------------------------------------------
 communication_serial.perform_setup_and_start()
 
 # perform actuation
 communication_serial.perform_actuation()
 
+
+# post actuation checks and analysis -------------------------------------------
 
 communication_serial.dict_feedback["init_trash"]
 communication_serial.dict_feedback["error_msg"]

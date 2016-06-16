@@ -21,10 +21,12 @@
 // 500 Hz is each 2 milli second is each 2000 micro second
 #define NMICROS_READ_SETPOINT 2000UL
 // number of microseconds to wait before performing again the PID control
-#define NMICROS_PID_LOOP 50UL
+#define NMICROS_PID_LOOP 100UL
 // number of micro seconds to wait before allowed to ask for a new buffer
 // to avoid asking several time in a row for the same buffer
-# define NMICROS_REQUEST_BUFFER 1000UL
+#define NMICROS_REQUEST_BUFFER 1000UL
+// how often sends feedback
+#define NMICROS_FEEDBACK 50000UL
 
 //Defines so the device can do a self reset ------------------------------------
 // NOTE: this part is Arduino Due specific
@@ -36,9 +38,9 @@
 
 // PID parameters --------------------------------------------------------------
 // coefficients with dummy initializations
-float PID_P = 1;
-float PID_I = 1;
-float PID_D = 1;
+float PID_P = 1.;
+float PID_I = 1.;
+float PID_D = 1.;
 int PID_S = 1;
 // working variables with initialization
 double Setpoint = DEFAULT_VALUE;
@@ -62,6 +64,11 @@ PID myPID(&Input, &Output, &Setpoint, PID_P, PID_I, PID_D, PID_S, NMICROS_PID_LO
 unsigned long last_update_set_point;
 // timiing for buffer request
 unsigned long last_request_buffer;
+// timing for sending feedback
+unsigned long last_time_sent_feedback;
+// time actuation
+unsigned long actuation_beginning;
+unsigned long actuation_end;
 
 // properties of the PWM -------------------------------------------------------
 // max value output (8 bits is default is 255)
@@ -83,8 +90,7 @@ int current_reading;
 // additional statistics -------------------------------------------------------
 unsigned long number_of_update_set_point = 0;
 unsigned long number_of_PID_loop = 0;
-
-
+unsigned long number_loop_called = 0;
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -142,9 +148,13 @@ void setup() {
     delay(1000);
     last_update_set_point = micros();
     last_request_buffer = micros();
+    last_time_sent_feedback = micros();
 
     // start PID
     myPID.SetMode(AUTOMATIC);
+
+    // beginning actuation
+    actuation_beginning = millis();
 
 }
 
@@ -152,20 +162,24 @@ void setup() {
 
 void loop() {
 
-    // check if time to update set point
+    // check if time to update set point ---------------------------------------
     set_point_control();
 
-    // read raw input and update input
+    // read raw input and update input -----------------------------------------
     update_input();
 
-    // call PID function
+    // call PID function -------------------------------------------------------
     performed_update_output = myPID.Compute();
 
-    // write to PWM
+    // write to PWM ------------------------------------------------------------
     if (performed_update_output){
         write_to_PWM();
     }
 
+    // send feedback -----------------------------------------------------------
+    send_feedback();
+
+    number_loop_called ++;
 
 }
 
@@ -244,9 +258,9 @@ float get_one_PID_parameter(char param_Key){
     // compute the PID parameter
     float PID_parameter = float(mantissa)*pow(10.0,float(exponent)-128.0);
 
-    //#if DEBUG_MODE
-    Serial.println(PID_parameter);
-    //#endif
+    #if DEBUG_MODE
+      Serial.println(PID_parameter*1000);
+    #endif
 
     return(PID_parameter);
 }
@@ -294,9 +308,12 @@ void set_point_control(){
 
         // if buffer empty, it is the end of actuation, reboot
         if (number_bits_available == 0){
+
+            actuation_end = millis();
             Serial.println('Z');
-            Serial.print(F("Number of update of set point: "));
-            Serial.println(number_of_update_set_point);
+
+            send_post_actuation_data();
+
             delay(100);
             REQUEST_EXTERNAL_RESET
         }
@@ -402,4 +419,56 @@ int assemble_bytes_protocol(){
   }
 
 }
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// FUNCTION TO SEND FEEDBACK
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void send_feedback(){
+
+  if (micros() - last_time_sent_feedback > NMICROS_FEEDBACK){
+
+    // send current set point, key A
+    Serial.println('A');
+    Serial.println(Setpoint);
+
+    // send current position, key B
+    Serial.println('B');
+    Serial.println(Input);
+
+    // send current control, key C
+    Serial.println('C');
+    Serial.println(Output);
+
+    // send current time micro seconds, key D
+    Serial.println('D');
+    Serial.println(micros());
+
+    // update timer
+    last_time_sent_feedback = micros();
+
+  }
+
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// FUNCTION TO SEND POST ACTUATION DATA
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void send_post_actuation_data(){
+
+  // send total actuation time
+  unsigned long actuation_total_time;
+  actuation_total_time = actuation_end - actuation_beginning;
+  Serial.println('T');
+  Serial.println(actuation_total_time);
+
+  // send number of set point updates
+  Serial.println('U');
+  Serial.println(number_of_update_set_point);
+
+  // send number of times loop was run
+  Serial.println('V');
+  Serial.println(number_loop_called);
+
+}

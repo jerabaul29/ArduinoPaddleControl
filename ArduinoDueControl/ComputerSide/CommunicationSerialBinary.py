@@ -661,7 +661,7 @@ class Paddle_Actuator(object):
                     self.dict_feedback[current_key].append(',')
                     error_message = False
 
-                # feedback time ms follows
+                # feedback time micro seconds follows
                 elif char_read == 'D':
                     current_key = "feedback_time_ms"
                     self.dict_feedback[current_key].append(',')
@@ -723,6 +723,8 @@ class Paddle_Actuator(object):
         """
         convert feedback into numpy format
         """
+
+        # read post actuation data
 
         # NOTE: use csv functions?
         self.feedback_set_point_np = np.array(self.feedback_set_point)
