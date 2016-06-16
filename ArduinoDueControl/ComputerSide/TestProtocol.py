@@ -9,8 +9,16 @@ import glob
 import time
 import SignalGeneration
 
+# ------------------------------------------------------------------------------
+# NOTE:
+# to do:
+# - add interactive mode for signal Selection
+# - add import signal from file and example
+# - add JR v2.0 header
+# ------------------------------------------------------------------------------
+
 ################################################################################
-print "######################### STARTING #########################"
+print "########################## STARTING ##########################"
 communication_serial = CommunicationSerialBinary.Paddle_Actuator()
 
 ################################################################################
@@ -62,6 +70,9 @@ communication_serial.dict_feedback["feedback_set_point"]
 
 communication_serial.convert_feedback_data()
 communication_serial.analyze_performed_actuation()
+
+################################################################################
+print "######################### FINISHING ##########################"
 
 
 
