@@ -44,12 +44,10 @@ communication_serial.perform_actuation()
 
 communication_serial.dict_feedback["init_trash"]
 communication_serial.dict_feedback["error_msg"]
-communication_serial.dict_feedback["post_actuation"]
+communication_serial.dict_feedback["feedback_set_point"]
 
-
-
-
-
+communication_serial.convert_feedback_data()
+communication_serial.analyze_performed_actuation()
 
 
 

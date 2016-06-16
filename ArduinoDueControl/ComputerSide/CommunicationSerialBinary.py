@@ -69,6 +69,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import glob
 import time
+from StringIO import StringIO
 ################################################################################
 
 ################################################################################
@@ -108,7 +109,12 @@ NUMBER_OF_POINTS_PER_BUFFER = 1024
 
 ################################################################################
 # put on off additional outputs
-DEBUGGING_FLAG = True
+DEBUGGING_FLAG = False
+################################################################################
+
+################################################################################
+# diverse
+ONE_MICRO_SECOND = 0.000001
 ################################################################################
 
 def look_for_available_ports():
@@ -196,6 +202,23 @@ def pid_constant_serial_format(value):
     # mantissa
     mantissa = int(math.floor(value*10**(-exponent_serial_transmission)))
     return mantissa, exponent_serial_transmission
+
+def convert_list_feedback(list_feedback):
+    """convert a list feedback into a numpy array"""
+
+    # remove the first item: comma
+    list_feedback.pop(0)
+
+    # join the list in a string
+    list_as_string = ''.join(list_feedback)
+
+    # generate the string
+    string_feedback = StringIO(''.join(list_feedback))
+
+    # generate as numpy table
+    numpy_feedback = np.genfromtxt(string_feedback, delimiter=",")
+
+    return numpy_feedback
 
 ################################################################################
 
@@ -574,6 +597,11 @@ class Paddle_Actuator(object):
         self.dict_feedback["benign_msg"] = []
         self.dict_feedback["init_trash"] = []
         self.dict_feedback["post_actuation"] = []
+        self.dict_feedback["post_actuation_total_actuation_time"] = []
+        self.dict_feedback["post_actuation_number_of_updates"] = []
+        self.dict_feedback["post_actuation_number_of_loop_calls"] = []
+        self.dict_feedback["post_actuation_error_msg"] = []
+
 
         print 'Send first double buffer and start actuation'
         # intialize the indice for start of next buffer
@@ -641,6 +669,10 @@ class Paddle_Actuator(object):
 
                 # ignore newline
                 if char_read == '\n':
+                    pass
+
+                # ignore return
+                elif char_read == '\r':
                     pass
 
                 # feedback set point follows
@@ -713,30 +745,99 @@ class Paddle_Actuator(object):
 
         while (self.serial_port.in_waiting > 0):
 
-            # log
-            self.dict_feedback["post_actuation"].append(self.serial_port.read())
+            ## log
+            #self.dict_feedback["post_actuation"].append(self.serial_port.read())
+
+            # read one char at a time
+            char_read = self.serial_port.read()
+
+            # ignore newline
+            if char_read == '\n':
+                pass
+
+            # ignore return
+            elif char_read == '\r':
+                pass
+
+            # wait for total actuation time
+            elif char_read == 'T':
+                current_key = "post_actuation_total_actuation_time"
+                self.dict_feedback[current_key].append(',')
+                error_message = False
+
+            elif char_read == 'U':
+                current_key = "post_actuation_number_of_updates"
+                self.dict_feedback[current_key].append(',')
+                error_message = False
+
+            elif char_read == 'V':
+                current_key = "post_actuation_number_of_loop_calls"
+                self.dict_feedback[current_key].append(',')
+                error_message = False
+
+            # error message (note: use E in the Arduino program only to say error follows)
+            elif char_read == 'E':
+                current_key = "post_actuation_error_msg"
+                self.dict_feedback[current_key].append(',')
+                error_message = True
+                self.number_error_messages = self.number_error_messages + 1
+                print "---------------------------- !!RECEIVED ERROR MESSAGE!! ----------------------------"
+
+            # data about a signal to log in the right list
+            else:
+                self.dict_feedback[current_key].append(char_read)
+                if error_message:
+                    print char_read
+
+        print "Finished post actuation logging!"
 
 
     ############################################################################
     # all diagnosis and post processing methods
+
     def convert_feedback_data(self):
         """
         convert feedback into numpy format
         """
 
-        # read post actuation data
+        self.feedback_set_point = convert_list_feedback(self.dict_feedback["feedback_set_point"])
+        self.feedback_position = convert_list_feedback(self.dict_feedback["feedback_position"])
+        self.feedback_control = convert_list_feedback(self.dict_feedback["feedback_control"])
+        self.feedback_time_ms = convert_list_feedback(self.dict_feedback["feedback_time_ms"])
+        self.post_actuation_total_actuation_time = convert_list_feedback(self.dict_feedback["post_actuation_total_actuation_time"])
+        self.post_actuation_number_of_updates = convert_list_feedback(self.dict_feedback["post_actuation_number_of_updates"])
+        self.post_actuation_number_of_loop_calls = convert_list_feedback(self.dict_feedback["post_actuation_number_of_loop_calls"])
 
-        # NOTE: use csv functions?
-        self.feedback_set_point_np = np.array(self.feedback_set_point)
-        self.feedback_position_np = np.array(self.feedback_position)
-        self.feedback_control_np = np.array(self.feedback_control)
-        self.feedback_time_ms_np = np.array(self.feedback_time_ms)
-
-        # put all arrays at the same length if needed (and issue warning then)
 
     def analyze_performed_actuation(self):
         """
         analyze of the feedback data and plot it
         """
+
+        print "-----------------------------------------------------------------"
+        print "FEEDBACK ANALYSIS"
+        print "-----------------------------------------------------------------"
+
+        print "Total actuation time (milli seconds): "+str(self.post_actuation_total_actuation_time)
+        print "Total number of set point updates: "+str(self.post_actuation_number_of_updates)
+        print "Total number of loop calls: "+str(self.post_actuation_number_of_loop_calls)
+
+        print " "
+
+        mean_update_time = self.post_actuation_total_actuation_time / self.post_actuation_number_of_updates
+        print "Mean update time (milli seconds): "+str(mean_update_time)
+        print "Theory: 2 milli seconds for scan rate 500 Hz"
+
+        mean_loop_time = 1000 * self.post_actuation_total_actuation_time / self.post_actuation_number_of_loop_calls
+        print "Mean loop time (micro seconds): "+str(mean_loop_time)
+
+        print " "
+
+        print "Plot graphical output"
+
         plt.figure()
-        plt.plot()
+        plt.plot(self.feedback_time_ms*ONE_MICRO_SECOND,self.feedback_set_point,label="set point")
+        plt.plot(self.feedback_time_ms*ONE_MICRO_SECOND,self.feedback_position,label="position")
+        plt.plot(self.feedback_time_ms*ONE_MICRO_SECOND,self.feedback_control,label="control")
+
+        plt.legend()
