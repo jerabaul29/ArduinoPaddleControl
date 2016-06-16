@@ -7,6 +7,7 @@ import numpy as np
 import tictoc
 import glob
 import time
+import SignalGeneration
 
 ################################################################################
 print "######################### STARTING #########################"
@@ -24,16 +25,20 @@ period = 2.
 amplitude = 250.
 mean_position = 2048.
 time_seconds = 20.
-signal = np.sin(np.linspace(0,time_seconds,time_seconds*scan_rate+1))*amplitude + mean_position
 
-#np.linspace(0,time_seconds,time_seconds*scan_rate+1)
+signal_class = SignalGeneration.signal_generation()
+signal_class.generate_time_base(time_seconds, scan_rate)
 
-#signal
+signal_class.generate_sinusoidal_signal(amplitude,1/period,mean_position)
+
+signal = signal_class.return_signal()
 
 ################################################################################
 # using the library to set a signal
 # SET THE PID PARAMETERS: P  |  I  |  D  |  S
-communication_serial.set_PID_parameters(12,34005,0.00074,1)
+# old values from Paddle UNO
+#communication_serial.set_PID_parameters(8,2,0.07,1)
+communication_serial.set_PID_parameters(8,2,0.07,1)
 
 # SET THE SIGNAL AND PLOT ------------------------------------------------------
 communication_serial.set_signal(signal)
@@ -48,7 +53,6 @@ communication_serial.perform_setup_and_start()
 
 # perform actuation
 communication_serial.perform_actuation()
-
 
 # post actuation checks and analysis -------------------------------------------
 

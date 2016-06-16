@@ -45,6 +45,10 @@ B: feedback position
 C: feedback control
 D: feedback milli seconds
 Z: actuation is finished
+T: total actuation time
+U: number of updates set point
+V: number of calls of loop
+W: number of feedback send
 ********************************************************************************
 
 ********************************************************************************
@@ -98,13 +102,14 @@ SHIFT_POWER_OF_10_PID_CSTTS = 128
 # properties of the time loops
 
 # frequency of the control signal (scan rate on old paddle)
-FREQUENCY_CONTROL = 200
+FREQUENCY_CONTROL = 500
 
 # number of points to send to the board upon buffer request
 # NOTE: CAUTION!! the size of the real buffer to send is bigger: if use two bytes, it will
 # be twice as many bytes as this number of points!
 # the NUMBER_OF_POINTS_PER_BUFFER should be typically half the HALF_INPUT_BUFFER in the Arduino program
-NUMBER_OF_POINTS_PER_BUFFER = 1024
+# in practise, take a few points less to avoid issues
+NUMBER_OF_POINTS_PER_BUFFER = 2038
 ################################################################################
 
 ################################################################################
@@ -537,6 +542,11 @@ class Paddle_Actuator(object):
         Check that eveything ready for starting one actuation
         Return True if everything is fine
         """
+
+        print "-----------------------------------------------------------------"
+        print "PERFORM CHECKS"
+        print "-----------------------------------------------------------------"
+
         if not self.serial_ready:
             print "Serial port not set!!"
             return False
@@ -558,6 +568,10 @@ class Paddle_Actuator(object):
         and start by sending the two first buffers
         Return True if everything went fine
         """
+
+        print "-----------------------------------------------------------------"
+        print "PERFORM SETUP LOOP"
+        print "-----------------------------------------------------------------"
 
         print 'Starting setup...'
 
@@ -631,6 +645,10 @@ class Paddle_Actuator(object):
         # NOTE: feedback implemented using ASCII on the way back
         # (Arduino to computer). Not very efficient, but otherwise
         # need protocol
+
+        print "-----------------------------------------------------------------"
+        print "PERFORM ACTUATION"
+        print "-----------------------------------------------------------------"
 
         print "Entering actuation core"
 
