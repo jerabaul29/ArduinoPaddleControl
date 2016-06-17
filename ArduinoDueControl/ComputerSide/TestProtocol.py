@@ -34,9 +34,9 @@ usb_port = communication_serial.connect_to_board()
 # scan rate in Hz
 scan_rate = 500.
 frequency = 2.
-amplitude = 350.
+amplitude = 950.
 mean_position = 2048.
-time_seconds = 25.
+time_seconds = 60.
 
 signal_class = SignalGeneration.signal_generation()
 signal_class.generate_time_base(time_seconds, scan_rate)

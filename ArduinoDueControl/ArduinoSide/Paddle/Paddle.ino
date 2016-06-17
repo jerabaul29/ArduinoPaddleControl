@@ -147,6 +147,7 @@ void setup() {
     pinMode(PWM_PIN_A,OUTPUT);
     pinMode(PWM_PIN_B,OUTPUT);
     pinMode(ENABLE_PIN,OUTPUT);
+    digitalWrite(ENABLE_PIN,LOW);
 
     // wait for ready signal ---------------------------------------------------
     wait_for_character('R');
@@ -362,6 +363,7 @@ void set_point_control(){
 
             actuation_end = millis();
             Serial.println('Z');
+            digitalWrite(ENABLE_PIN,LOW);
 
             send_post_actuation_data();
 
