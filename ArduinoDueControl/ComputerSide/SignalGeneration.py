@@ -26,6 +26,24 @@ class signal_generation(object):
 
         return(self.signal)
 
+    def import_signal(self):
+        """import signal from a numpy array saved in a file"""
+
+        print "Start importing signal from file file ------------------"
+        print "Procedre: the file must have been saved using numpy.savez"
+        print "and contain a signal array"
+
+        file_name = raw_input("Enter filename (example: ex.npz): ")
+
+        data = np.load(file_name)
+        self.signal = data['signal']
+
+        print "Signal length: "+str(np.shape(self.signal))
+        print "Done importing signal from file file -------------------"
+
+        return (self.signal)
+
+
     def return_signal(self):
         """return the signal"""
 

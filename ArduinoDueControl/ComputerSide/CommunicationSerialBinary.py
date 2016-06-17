@@ -539,7 +539,7 @@ class Paddle_Actuator(object):
         plt.plot(time, self.control_signal)
         plt.xlabel('Time (s)')
         plt.ylabel('Signal (int value control)')
-        plt.show()
+        plt.show(block=True)
 
     ############################################################################
     # all methods for performing one actuation cycle
@@ -862,16 +862,12 @@ class Paddle_Actuator(object):
         print "Total number of ms feedback received: "+str(self.number_feedback_ms_received)
         print "Corresponding to a theoretical signal duration (s): "+str(float(self.number_feedback_ms_received)/20.)
 
-        print " "
-
         mean_update_time = self.post_actuation_total_actuation_time / self.post_actuation_number_of_updates
         print "Mean update time (milli seconds): "+str(mean_update_time)
         print "Theory: 2 milli seconds for scan rate 500 Hz"
 
         mean_loop_time = 1000 * self.post_actuation_total_actuation_time / self.post_actuation_number_of_loop_calls
         print "Mean loop time (micro seconds): "+str(mean_loop_time)
-
-        print " "
 
         print "Plot graphical output"
 
@@ -884,3 +880,4 @@ class Paddle_Actuator(object):
         plt.ylabel('feedback from arduino')
 
         plt.legend(loc=3)
+        plt.show(block=True)

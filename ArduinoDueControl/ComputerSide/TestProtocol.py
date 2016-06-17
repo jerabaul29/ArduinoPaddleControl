@@ -1,5 +1,5 @@
-%reset -f
-%matplotlib inline
+#%reset -f
+#%matplotlib inline
 
 import serial
 import CommunicationSerialBinary
@@ -12,10 +12,16 @@ import SignalGeneration
 # ------------------------------------------------------------------------------
 # NOTE:
 # to do:
-# - add interactive mode for signal Selection
-# - add import signal from file and example
-# - add JR v2.0 header
 # ------------------------------------------------------------------------------
+
+################################################################################
+# example of saving signal to a file
+# not: does not work in an Hydrogen notebook because of raw_imput not available in this backend
+signal_to_save = np.zeros((1000,))
+np.savez('Example_np_signal_saved',signal=signal_to_save)
+# example of loading a signal from a file
+signal_class = SignalGeneration.signal_generation()
+signal_class.import_signal()
 
 ################################################################################
 # wait a bit
