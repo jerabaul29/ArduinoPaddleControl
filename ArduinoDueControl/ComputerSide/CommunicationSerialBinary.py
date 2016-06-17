@@ -457,7 +457,10 @@ class Paddle_Actuator(object):
         # acceleration
 
         # how much time to go to mean
-        number_points_go_to_zero = FREQUENCY_CONTROL * 10
+        # default
+        #number_points_go_to_zero = FREQUENCY_CONTROL * 10
+        # reduced for faster testing / actuation with good signal
+        number_points_go_to_zero = FREQUENCY_CONTROL * 3
         # the offset to correct for
         excess = self.control_signal[0] - MEAN_POSITION
         # how fast go to mean
@@ -483,7 +486,10 @@ class Paddle_Actuator(object):
         # acceleration
 
         # how much time to go to mean
-        number_points_go_to_zero = FREQUENCY_CONTROL * 10
+        # default
+        #number_points_go_to_zero = FREQUENCY_CONTROL * 10
+        # reduced for faster testing / actuation with good signal
+        number_points_go_to_zero = FREQUENCY_CONTROL * 3
         # the offset to correct for
         excess = self.control_signal[-1]-MEAN_POSITION
         # how fast go to mean
@@ -869,9 +875,12 @@ class Paddle_Actuator(object):
 
         print "Plot graphical output"
 
-        plt.figure()
+        plt.figure(figsize=(20,10))
         plt.plot(self.feedback_time_ms*ONE_MICRO_SECOND,self.feedback_set_point,label="set point")
         plt.plot(self.feedback_time_ms*ONE_MICRO_SECOND,self.feedback_position,label="position")
-        plt.plot(self.feedback_time_ms*ONE_MICRO_SECOND,self.feedback_control,label="control")
+        #plt.plot(self.feedback_time_ms*ONE_MICRO_SECOND,self.feedback_control,label="control")
+
+        plt.xlabel('time (s)')
+        plt.ylabel('feedback from arduino')
 
         plt.legend(loc=3)

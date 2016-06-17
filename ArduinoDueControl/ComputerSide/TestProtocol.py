@@ -18,6 +18,10 @@ import SignalGeneration
 # ------------------------------------------------------------------------------
 
 ################################################################################
+# wait a bit
+time.sleep(5)
+
+################################################################################
 print "########################## STARTING ##########################"
 communication_serial = CommunicationSerialBinary.Paddle_Actuator()
 
@@ -29,24 +33,27 @@ usb_port = communication_serial.connect_to_board()
 # set the actuation signal
 # scan rate in Hz
 scan_rate = 500.
-period = 2.
-amplitude = 250.
+frequency = 2.
+amplitude = 350.
 mean_position = 2048.
-time_seconds = 20.
+time_seconds = 25.
 
 signal_class = SignalGeneration.signal_generation()
 signal_class.generate_time_base(time_seconds, scan_rate)
 
-signal_class.generate_sinusoidal_signal(amplitude,1/period,mean_position)
+signal_class.generate_sinusoidal_signal(amplitude,frequency,mean_position)
 
 signal = signal_class.return_signal()
 
 ################################################################################
 # using the library to set a signal
+small_value = 0.0000001
+direction_actuation = 0
 # SET THE PID PARAMETERS: P  |  I  |  D  |  S
+# NOTE: never put zero, otherwise transfer protocol fails (use small_value instead)
 # old values from Paddle UNO
 #communication_serial.set_PID_parameters(8,2,0.07,1)
-communication_serial.set_PID_parameters(8,2,0.07,1)
+communication_serial.set_PID_parameters(2,2,0.04,direction_actuation)
 
 # SET THE SIGNAL AND PLOT ------------------------------------------------------
 communication_serial.set_signal(signal)

@@ -21,7 +21,10 @@
 // 500 Hz is each 2 milli second is each 2000 micro second
 #define NMICROS_READ_SETPOINT 2000UL
 // number of microseconds to wait before performing again the PID control
-#define NMICROS_PID_LOOP 100UL
+// this value works fine but may be too fast
+//#define NMICROS_PID_LOOP 100UL
+// other value
+#define NMICROS_PID_LOOP 500UL
 // number of micro seconds to wait before allowed to ask for a new buffer
 // to avoid asking several time in a row for the same buffer
 #define NMICROS_REQUEST_BUFFER 100000UL
@@ -76,16 +79,24 @@ unsigned long actuation_end;
 // pins of the PWM (two pins)
 #define PWM_PIN_A 11
 #define PWM_PIN_B 3
+#define ENABLE_PIN 13
 
 // properties of the ADC -------------------------------------------------------
 #define ADC_RESOLUTION 12
 #define ADC_PIN A0
 
-// variables for the filter ----------------------------------------------------
+// variables for the filters ---------------------------------------------------
+// position reading
 int pos_1_before = DEFAULT_VALUE;
 int pos_2_before = DEFAULT_VALUE;
 int pos_3_before = DEFAULT_VALUE;
 int current_reading;
+
+// control
+int control_1_before = 0;
+int control_2_before = 0;
+int control_3_before = 0;
+int smoothed_control = 0;
 
 // additional statistics -------------------------------------------------------
 unsigned long number_of_update_set_point = 0;
@@ -131,6 +142,12 @@ void setup() {
     // increase the PWM frequency for avoiding the annoying PWM noise and allowing
     // faster control. This is done directly in variants.h
 
+    // TAKE CARE OF MOTO SHIELD INIT -------------------------------------------
+    // set pins function
+    pinMode(PWM_PIN_A,OUTPUT);
+    pinMode(PWM_PIN_B,OUTPUT);
+    pinMode(ENABLE_PIN,OUTPUT);
+
     // wait for ready signal ---------------------------------------------------
     wait_for_character('R');
 
@@ -157,6 +174,9 @@ void setup() {
     // beginning actuation
     actuation_beginning = millis();
 
+    // start the MotoShield
+    digitalWrite(ENABLE_PIN,HIGH);
+
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -177,7 +197,12 @@ void loop() {
 
     // write to PWM ------------------------------------------------------------
     if (performed_update_output){
-        write_to_PWM();
+      // no smoothing
+      //write_to_PWM();
+
+      // smoothing
+      smooth_control();
+      write_to_PWM_smoothed();
     }
 
     number_loop_called ++;
@@ -215,6 +240,19 @@ void wait_for_character(char char_to_get){
     }
 }
 
+void smooth_control(){
+  // smooth the control value to reduce high frequency actuation mistake
+
+  // compute smooth control
+  smoothed_control = (Output*4 + control_1_before*3 + control_2_before*2 + control_3_before)/10;
+
+  // prepare values for next actuation
+  control_3_before = control_2_before;
+  control_2_before = control_1_before;
+  control_1_before = Output;
+
+}
+
 void write_to_PWM(){
     // write to PWM using two pins for having two directions control (H bridge)
     if (Output>0){
@@ -226,6 +264,18 @@ void write_to_PWM(){
         analogWrite(PWM_PIN_B, 0);
     }
 }
+
+void write_to_PWM_smoothed(){
+  // write to PWM using two pins for having two directions control (H bridge)
+  if (smoothed_control>0){
+    analogWrite(PWM_PIN_A, 0);
+    analogWrite(PWM_PIN_B, smoothed_control);
+  }
+  else{
+    analogWrite(PWM_PIN_A, -smoothed_control);
+    analogWrite(PWM_PIN_B, 0);
+  }
+  }
 
 void update_input(){
     // update input; do some filtering to smooth the signal
