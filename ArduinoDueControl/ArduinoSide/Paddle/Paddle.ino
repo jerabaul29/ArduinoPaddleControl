@@ -22,7 +22,7 @@
 // 500 Hz is each 2 milli second is each 2000 micro second
 #define NMICROS_READ_SETPOINT 2000UL
 // number of microseconds to wait before performing again the PID control
-// this value works fine but may be too fast
+// this value works fine but may be too fast for the derivative part to work fine
 //#define NMICROS_PID_LOOP 100UL
 // other value
 #define NMICROS_PID_LOOP 500UL
@@ -112,12 +112,6 @@ unsigned long number_of_feedback_send = 0;
 // how fast ADC: can be checked with TestADC_Due
 // how fast PWM (frequency and multiplicator): set in the modified Arduino Due core
 // resolution PWM: set in the modified Arduino Due core
-
-// TO DO:
-
-// check messages sent in feedback; some may interfere with the excahnge of characters for checking ready
-// comment code
-// do not use micros but increment on last read time, to avoid slow drift: do it on the PID also?
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

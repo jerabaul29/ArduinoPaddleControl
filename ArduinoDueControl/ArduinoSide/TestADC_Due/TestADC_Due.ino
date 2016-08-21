@@ -7,13 +7,14 @@ unsigned long time2;
 unsigned long time_elapsed;
 
 // notes about Arduino Due
-// theory: ADC: 16 x 12 bits, 1MHz
+// theory: ADC: 12 bits, 1MHz
 // real worls because of Arduino wrappers: I get around 232 000 Hz
-// NOTE: this is fast enough to do some over sampling and reduce noise
+// NOTE: this is fast enough to do some over sampling and reduce noise for my applications
+// so I do not attempt to get to the 1MHz speed
 
 void setup() {
 
-  // open serial port on native USB; baud rate must be the same as in Python
+  // open serial port on native USB
   Serial.begin(115200);
 
   // change the resolution to 12 bits and read A0 (12 bits ADC on Arduino Due)

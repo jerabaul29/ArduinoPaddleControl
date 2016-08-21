@@ -1,6 +1,7 @@
 /**********************************************************************************************
- * Arduino PID Library - Version 1.1.1 modified to use microseconds
- * by Brett Beauregard <br3ttb@gmail.com> brettbeauregard.com
+ * Arduino PID Library - Version 1.1.1 [modified to use microseconds]
+ * initially written by Brett Beauregard <br3ttb@gmail.com> brettbeauregard.com
+ * modified by Jean Rabault <jean.rblt@gmail.com> to use microseconds
  *
  * This Library is licensed under a GPLv3 License
  **********************************************************************************************/
