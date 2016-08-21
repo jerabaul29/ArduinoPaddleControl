@@ -4,7 +4,7 @@ This is the control systems I developed as a side project for building a compute
 
 ## Note on Hardware
 
-The code is written for Arduino Uno or Due (depending on version). The sensors used are LVDTs. The H-bridge used is a Moto Shields from Robot Power, either Mega Moto Plus <http://www.robotpower.com/products/MegaMotoPlus_info.html> or Mega Moto GT <http://www.robotpower.com/products/MegaMotoGT_info.html>. The pins connections are indicated in the arduino codes and can be adapted to any other sensor and H-bridge.
+The code is written for Arduino Uno or Due (depending on version). The sensor used for the paddle control system is a LVDT, and the H-bridge used to drive the actuator is a Moto Shields from Robot Power, either Mega Moto Plus <http://www.robotpower.com/products/MegaMotoPlus_info.html> or Mega Moto GT <http://www.robotpower.com/products/MegaMotoGT_info.html>. The pins connections are indicated in the arduino codes and can be adapted to any other sensor and H-bridge.
 
 ## ArduinoUnoControl
 
